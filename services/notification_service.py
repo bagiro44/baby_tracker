@@ -9,13 +9,17 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     @staticmethod
-    async def notify_group(context, message, timestamp=None):
+    async def notify_group(context, message, user_name=None, timestamp=None):
         """Send notification to group chat"""
         if not GROUP_CHAT_ID:
             logger.warning("GROUP_CHAT_ID not configured")
             return
 
         try:
+            # Добавляем информацию о пользователе
+            if user_name:
+                message = f"{message} 👤 {user_name}"
+
             if timestamp:
                 time_str = timestamp.astimezone(pytz.timezone(TIMEZONE)).strftime('%H:%M')
                 message = f"{message} в {time_str}"

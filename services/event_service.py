@@ -8,18 +8,41 @@ from config import TIMEZONE, FEEDING_INTERVAL_HOURS
 
 class EventService:
     @staticmethod
-    async def start_sleep(context, baby_id, user_id, timestamp=None):
+    def get_gender_specific_text(baby, base_text_male, base_text_female, base_text_unknown=None):
+        """Возвращает текст с учетом пола ребенка"""
+        if base_text_unknown is None:
+            base_text_unknown = base_text_male  # По умолчанию используем мужской род
+
+        gender = baby.get('gender', 'unknown')
+        if gender == 'male':
+            return base_text_male
+        elif gender == 'female':
+            return base_text_female
+        else:
+            return base_text_unknown
+
+    @staticmethod
+    async def start_sleep(context, baby_id, user_id, user_name, timestamp=None):
         event_id = Event.add(baby_id, Event.SLEEP_START, user_id, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
+
+        sleep_text = EventService.get_gender_specific_text(
+            baby,
+            "начал спать",
+            "начала спать",
+            "начал(а) спать"
+        )
+
         await NotificationService.notify_group(
             context,
-            f"😴 {baby['name']} начал(а) спать",
+            f"😴 {baby['name']} {sleep_text}",
+            user_name,
             timestamp
         )
         return event_id
 
     @staticmethod
-    async def end_sleep(context, baby_id, user_id, timestamp=None):
+    async def end_sleep(context, baby_id, user_id, user_name, timestamp=None):
         sleep_start = Event.get_active_sleep(baby_id)
         if not sleep_start:
             return None
@@ -35,26 +58,50 @@ class EventService:
         minutes = duration % 60
         duration_text = f"{hours}ч {minutes}м" if hours > 0 else f"{minutes}м"
 
+        wake_text = EventService.get_gender_specific_text(
+            baby,
+            "проснулся",
+            "проснулась",
+            "проснулся(ась)"
+        )
+
+        sleep_text = EventService.get_gender_specific_text(
+            baby,
+            "Спал",
+            "Спала",
+            "Спал(а)"
+        )
+
         await NotificationService.notify_group(
             context,
-            f"😴 {baby['name']} проснулся(ась). Спал(а): {duration_text}",
+            f"😴 {baby['name']} {wake_text}. {sleep_text}: {duration_text}",
+            user_name,
             end_time
         )
         return event_id, duration
 
     @staticmethod
-    async def start_breast_feeding(context, baby_id, user_id, timestamp=None):
+    async def start_breast_feeding(context, baby_id, user_id, user_name, timestamp=None):
         event_id = Event.add(baby_id, Event.BREAST_FEEDING_START, user_id, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
+
+        feeding_text = EventService.get_gender_specific_text(
+            baby,
+            "Начато грудное кормление",
+            "Начато грудное кормление",  # Текст одинаковый
+            "Начато грудное кормление"
+        )
+
         await NotificationService.notify_group(
             context,
-            f"🤱 Начато грудное кормление {baby['name']}",
+            f"🤱 {feeding_text} {baby['name']}",
+            user_name,
             timestamp
         )
         return event_id
 
     @staticmethod
-    async def end_breast_feeding(context, baby_id, user_id, breast_side, timestamp=None):
+    async def end_breast_feeding(context, baby_id, user_id, user_name, breast_side, timestamp=None):
         feeding_start = Event.get_active_breast_feeding(baby_id)
         if not feeding_start:
             return None
@@ -68,21 +115,37 @@ class EventService:
                              duration=duration, notes=breast_side, timestamp=end_time)
         baby = Baby.get_by_id(baby_id)
 
+        feeding_text = EventService.get_gender_specific_text(
+            baby,
+            "Завершено грудное кормление",
+            "Завершено грудное кормление",  # Текст одинаковый
+            "Завершено грудное кормление"
+        )
+
         await NotificationService.notify_group(
             context,
-            f"🤱 Завершено грудное кормление {baby['name']} ({breast_text} грудью, {duration}м)",
+            f"🤱 {feeding_text} {baby['name']} ({breast_text} грудью, {duration}м)",
+            user_name,
             end_time
         )
         return event_id, duration
 
     @staticmethod
-    async def add_bottle_feeding(context, baby_id, user_id, amount, timestamp=None):
+    async def add_bottle_feeding(context, baby_id, user_id, user_name, amount, timestamp=None):
         event_id = Event.add(baby_id, Event.BOTTLE_FEEDING, user_id, amount=amount, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
+        feeding_text = EventService.get_gender_specific_text(
+            baby,
+            "покормлен смесью",
+            "покормлена смесью",
+            "покормлен(а) смесью"
+        )
+
         await NotificationService.notify_group(
             context,
-            f"🍼 {baby['name']} покормлен(а) смесью: {amount}мл",
+            f"🍼 {baby['name']} {feeding_text}: {amount}мл",
+            user_name,
             timestamp
         )
 
@@ -93,19 +156,20 @@ class EventService:
         return event_id
 
     @staticmethod
-    async def add_weight(context, baby_id, user_id, weight, timestamp=None):
+    async def add_weight(context, baby_id, user_id, user_name, weight, timestamp=None):
         event_id = Event.add(baby_id, Event.WEIGHT, user_id, amount=weight, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
-        await NotificationService.notify_text(
+        await NotificationService.notify_group(
             context,
             f"⚖️ {baby['name']}: {weight}г",
+            user_name,
             timestamp
         )
         return event_id
 
     @staticmethod
-    async def add_diaper(context, baby_id, user_id, diaper_type, timestamp=None):
+    async def add_diaper(context, baby_id, user_id, user_name, diaper_type, timestamp=None):
         event_id = Event.add(baby_id, Event.DIAPER, user_id, notes=diaper_type, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
@@ -115,9 +179,23 @@ class EventService:
             'mixed': '💦💩'
         }
 
+        type_names = {
+            'wet': 'мокрый',
+            'dirty': 'грязный',
+            'mixed': 'смешанный'
+        }
+
+        diaper_text = EventService.get_gender_specific_text(
+            baby,
+            "Смена подгузника",
+            "Смена подгузника",  # Текст одинаковый
+            "Смена подгузника"
+        )
+
         await NotificationService.notify_group(
             context,
-            f"{type_emojis.get(diaper_type, '💩')} Смена подгузника {baby['name']} ({diaper_type})",
+            f"{type_emojis.get(diaper_type, '💩')} {diaper_text} {baby['name']} ({type_names.get(diaper_type, diaper_type)})",
+            user_name,
             timestamp
         )
         return event_id
@@ -130,9 +208,3 @@ class EventService:
 
         next_time = last_feeding['timestamp'] + timedelta(hours=FEEDING_INTERVAL_HOURS)
         return next_time
-
-    # Добавим отдельный метод для отправки текстовых уведомлений
-    @staticmethod
-    async def notify_text(context, message, timestamp=None):
-        """Send text notification to group"""
-        await NotificationService.notify_group(context, message, timestamp)

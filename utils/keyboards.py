@@ -1,5 +1,6 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from config import ADMIN_USER_IDS
+from utils.time_utils import format_time_with_offset
 
 def main_menu_keyboard():
     keyboard = [
@@ -12,16 +13,26 @@ def main_menu_keyboard():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-def time_selection_keyboard(action):
+def gender_selection_keyboard():
     keyboard = [
-        [InlineKeyboardButton("Сейчас", callback_data=f"time_{action}_0")],
         [
-            InlineKeyboardButton("10 мин", callback_data=f"time_{action}_10"),
-            InlineKeyboardButton("20 мин", callback_data=f"time_{action}_20")
+            InlineKeyboardButton("👦 Мальчик", callback_data="gender_male"),
+            InlineKeyboardButton("👧 Девочка", callback_data="gender_female")
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def time_selection_keyboard(action):
+    # Формируем кнопки с точным временем
+    keyboard = [
+        [InlineKeyboardButton(format_time_with_offset(0), callback_data=f"time_{action}_0")],
+        [
+            InlineKeyboardButton(format_time_with_offset(10), callback_data=f"time_{action}_10"),
+            InlineKeyboardButton(format_time_with_offset(20), callback_data=f"time_{action}_20")
         ],
         [
-            InlineKeyboardButton("30 мин", callback_data=f"time_{action}_30"),
-            InlineKeyboardButton("40 мин", callback_data=f"time_{action}_40")
+            InlineKeyboardButton(format_time_with_offset(30), callback_data=f"time_{action}_30"),
+            InlineKeyboardButton(format_time_with_offset(40), callback_data=f"time_{action}_40")
         ],
         [InlineKeyboardButton("Свое время", callback_data=f"time_{action}_custom")],
         [InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")]
@@ -62,8 +73,4 @@ def diaper_type_keyboard():
         [InlineKeyboardButton("💦💩 Смешанный", callback_data="diaper_mixed")],
         [InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")]
     ]
-    return InlineKeyboardMarkup(keyboard)
-
-def back_to_main_keyboard():
-    keyboard = [[InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")]]
     return InlineKeyboardMarkup(keyboard)

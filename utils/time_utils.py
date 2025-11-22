@@ -34,3 +34,14 @@ def format_duration(minutes):
     if hours > 0:
         return f"{hours}ч {mins}м"
     return f"{mins}м"
+
+
+def format_time_with_offset(minutes_ago):
+    """Format time with offset for display in buttons"""
+    target_time = get_time_with_offset(minutes_ago)
+    time_str = target_time.strftime('%H:%M')
+
+    if minutes_ago == 0:
+        return f"Сейчас ({time_str})"
+    else:
+        return f"{minutes_ago} мин ({time_str})"

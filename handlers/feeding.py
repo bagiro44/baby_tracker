@@ -52,7 +52,7 @@ class FeedingHandler:
                 message = NotificationService.format_next_feeding(baby, next_time)
             else:
                 message = "❌ Не найдено предыдущих кормлений"
-            await query.edit_message_text(message, reply_markup=back_to_main_keyboard())
+            await query.edit_message_text(message, reply_markup=main_menu_keyboard())
 
     @staticmethod
     async def handle_bottle_volume(update: Update, context: ContextTypes.DEFAULT_TYPE, volume_str: str):
@@ -86,6 +86,7 @@ class FeedingHandler:
         await query.answer()
 
         user_id = update.effective_user.id
+        user_name = update.effective_user.first_name
         baby = Baby.get_current()
         volume = context.user_data.get('bottle_volume')
 
@@ -104,8 +105,11 @@ class FeedingHandler:
         minutes = int(minutes_str)
         timestamp = get_time_with_offset(minutes) if minutes > 0 else None
 
-        await EventService.add_bottle_feeding(context, baby['id'], user_id, volume, timestamp)
-        await query.edit_message_text(f"✅ Кормление {volume}мл записано!", reply_markup=back_to_main_keyboard())
+        await EventService.add_bottle_feeding(context, baby['id'], user_id, user_name, volume, timestamp)
+        await query.edit_message_text(
+            f"✅ Кормление {volume}мл записано! Выберите следующее действие:",
+            reply_markup=main_menu_keyboard()
+        )
 
     @staticmethod
     async def handle_breast_time(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str, minutes_str: str):
@@ -113,6 +117,7 @@ class FeedingHandler:
         await query.answer()
 
         user_id = update.effective_user.id
+        user_name = update.effective_user.first_name
         baby = Baby.get_current()
 
         if minutes_str == "custom":
@@ -127,8 +132,11 @@ class FeedingHandler:
         timestamp = get_time_with_offset(minutes) if minutes > 0 else None
 
         if action == "start":
-            await EventService.start_breast_feeding(context, baby['id'], user_id, timestamp)
-            await query.edit_message_text("✅ Начало кормления записано!", reply_markup=back_to_main_keyboard())
+            await EventService.start_breast_feeding(context, baby['id'], user_id, user_name, timestamp)
+            await query.edit_message_text(
+                "✅ Начало кормления записано! Выберите следующее действие:",
+                reply_markup=main_menu_keyboard()
+            )
         elif action == "end":
             # For breast end, we need to ask for breast side
             UserState.set_state(user_id, "awaiting_breast_side", {
@@ -143,16 +151,22 @@ class FeedingHandler:
         await query.answer()
 
         user_id = update.effective_user.id
+        user_name = update.effective_user.first_name
         baby = Baby.get_current()
         user_state = UserState.get_state(user_id)
         state_data = user_state.get('data', {})
         timestamp = state_data.get('timestamp')
 
-        result = await EventService.end_breast_feeding(context, baby['id'], user_id, breast_side, timestamp)
+        result = await EventService.end_breast_feeding(context, baby['id'], user_id, user_name, breast_side, timestamp)
         UserState.clear_state(user_id)
 
         if result:
-            await query.edit_message_text("✅ Конец кормления записан!", reply_markup=back_to_main_keyboard())
+            await query.edit_message_text(
+                "✅ Конец кормления записан! Выберите следующее действие:",
+                reply_markup=main_menu_keyboard()
+            )
         else:
-            await query.edit_message_text("❌ Не найдено активное начало кормления",
-                                          reply_markup=back_to_main_keyboard())
+            await query.edit_message_text(
+                "❌ Не найдено активное начало кормления. Выберите действие:",
+                reply_markup=main_menu_keyboard()
+            )

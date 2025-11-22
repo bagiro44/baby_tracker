@@ -41,6 +41,7 @@ class SleepHandler:
         await query.answer()
 
         user_id = update.effective_user.id
+        user_name = update.effective_user.first_name
         baby = Baby.get_current()
 
         if minutes_str == "custom":
@@ -55,11 +56,20 @@ class SleepHandler:
         timestamp = get_time_with_offset(minutes) if minutes > 0 else None
 
         if action == "start":
-            await EventService.start_sleep(context, baby['id'], user_id, timestamp)
-            await query.edit_message_text("✅ Начало сна записано!", reply_markup=back_to_main_keyboard())
+            await EventService.start_sleep(context, baby['id'], user_id, user_name, timestamp)
+            await query.edit_message_text(
+                "✅ Начало сна записано! Выберите следующее действие:",
+                reply_markup=main_menu_keyboard()
+            )
         elif action == "end":
-            result = await EventService.end_sleep(context, baby['id'], user_id, timestamp)
+            result = await EventService.end_sleep(context, baby['id'], user_id, user_name, timestamp)
             if result:
-                await query.edit_message_text("✅ Конец сна записан!", reply_markup=back_to_main_keyboard())
+                await query.edit_message_text(
+                    "✅ Конец сна записан! Выберите следующее действие:",
+                    reply_markup=main_menu_keyboard()
+                )
             else:
-                await query.edit_message_text("❌ Не найдено активное начало сна", reply_markup=back_to_main_keyboard())
+                await query.edit_message_text(
+                    "❌ Не найдено активное начало сна. Выберите действие:",
+                    reply_markup=main_menu_keyboard()
+                )

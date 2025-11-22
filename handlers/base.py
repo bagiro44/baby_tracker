@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from models.baby import Baby
 from models.user import UserState
-from utils.keyboards import main_menu_keyboard
+from utils.keyboards import main_menu_keyboard, gender_selection_keyboard
 import logging
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class BaseHandler:
         user_state = UserState.get_state(user_id)
 
         if not user_state:
-            await update.message.reply_text("Пожалуйста, используйте кнопки меню.")
+            await update.message.reply_text("Пожалуйста, используйте кнопки меню.", reply_markup=main_menu_keyboard())
             return
 
         state = user_state['state']
@@ -77,145 +77,145 @@ class BaseHandler:
                 state_data = user_state.get('data', {})
                 baby_name = state_data.get('name', '')
 
-                baby_id = Baby.add(baby_name, birth_date)
-                UserState.clear_state(user_id)
-
+                # Сохраняем данные и переходим к выбору пола
+                UserState.set_state(user_id, "awaiting_baby_gender", {
+                    "name": baby_name,
+                    "birth_date": birth_date
+                })
                 await update.message.reply_text(
-                    f"✅ Ребенок {baby_name} добавлен!\n"
-                    f"Дата рождения: {birth_date.strftime('%d.%m.%Y')}"
+                    "Выберите пол ребенка:",
+                    reply_markup=gender_selection_keyboard()
                 )
-                await BaseHandler.show_main_menu(update, context)
 
             except ValueError:
                 await update.message.reply_text("❌ Неверный формат даты. Используйте ДД.ММ.ГГГГ")
 
+        elif state == "awaiting_baby_gender":
+            # Этот обработчик будет вызван через callback, но на всякий случай оставим
+            await update.message.reply_text("Пожалуйста, выберите пол используя кнопки ниже")
 
         elif state == "awaiting_custom_time":
-
             from utils.time_utils import parse_custom_time
 
             custom_time = parse_custom_time(text)
-
             if not custom_time:
                 await update.message.reply_text("❌ Неверный формат времени. Используйте ЧЧММ (например, 1430)")
-
                 return
 
             state_data = user_state.get('data', {})
-
             action_type = state_data.get('action_type')
-
             baby_id = state_data.get('baby_id')
+            user_name = update.effective_user.first_name
 
             if action_type == "bottle_feeding":
-
                 UserState.set_state(user_id, "awaiting_bottle_volume", {
-
                     "baby_id": baby_id,
-
                     "timestamp": custom_time
-
                 })
-
                 await update.message.reply_text("Введите объем смеси в мл:")
-
             elif action_type == "sleep_start":
-
-                await EventService.start_sleep(context, baby_id, user_id, custom_time)
-
-                await update.message.reply_text("✅ Начало сна записано!")
-
-                await BaseHandler.show_main_menu(update, context)
-
+                from services.event_service import EventService
+                await EventService.start_sleep(context, baby_id, user_id, user_name, custom_time)
+                await update.message.reply_text(
+                    "✅ Начало сна записано! Выберите следующее действие:",
+                    reply_markup=main_menu_keyboard()
+                )
             elif action_type == "sleep_end":
-
-                result = await EventService.end_sleep(context, baby_id, user_id, custom_time)
-
+                from services.event_service import EventService
+                result = await EventService.end_sleep(context, baby_id, user_id, user_name, custom_time)
                 if result:
-
-                    await update.message.reply_text("✅ Конец сна записан!")
-
+                    await update.message.reply_text(
+                        "✅ Конец сна записан! Выберите следующее действие:",
+                        reply_markup=main_menu_keyboard()
+                    )
                 else:
-
-                    await update.message.reply_text("❌ Не найдено активное начало сна")
-
-                await BaseHandler.show_main_menu(update, context)
-
+                    await update.message.reply_text(
+                        "❌ Не найдено активное начало сна. Выберите действие:",
+                        reply_markup=main_menu_keyboard()
+                    )
             elif action_type == "breast_start":
-
-                await EventService.start_breast_feeding(context, baby_id, user_id, custom_time)
-
-                await update.message.reply_text("✅ Начало кормления записано!")
-
-                await BaseHandler.show_main_menu(update, context)
-
+                from services.event_service import EventService
+                await EventService.start_breast_feeding(context, baby_id, user_id, user_name, custom_time)
+                await update.message.reply_text(
+                    "✅ Начало кормления записано! Выберите следующее действие:",
+                    reply_markup=main_menu_keyboard()
+                )
             elif action_type == "breast_end":
-
                 UserState.set_state(user_id, "awaiting_breast_side", {
-
                     "baby_id": baby_id,
-
                     "timestamp": custom_time
-
                 })
-
                 from utils.keyboards import breast_side_keyboard
-
                 await update.message.reply_text("Выберите грудь:", reply_markup=breast_side_keyboard())
 
-
-        # В обработке awaiting_bottle_volume:
-
         elif state == "awaiting_bottle_volume":
-
             try:
-
                 volume = int(text)
-
                 state_data = user_state.get('data', {})
-
                 baby_id = state_data.get('baby_id')
-
                 timestamp = state_data.get('timestamp')
+                user_name = update.effective_user.first_name
 
-                await EventService.add_bottle_feeding(context, baby_id, user_id, volume, timestamp)
-
+                from services.event_service import EventService
+                await EventService.add_bottle_feeding(context, baby_id, user_id, user_name, volume, timestamp)
                 UserState.clear_state(user_id)
 
-                await update.message.reply_text(f"✅ Кормление {volume}мл записано!")
-
-                await BaseHandler.show_main_menu(update, context)
-
+                await update.message.reply_text(
+                    f"✅ Кормление {volume}мл записано! Выберите следующее действие:",
+                    reply_markup=main_menu_keyboard()
+                )
 
             except ValueError:
-
                 await update.message.reply_text("❌ Введите число (объем в мл)")
 
-
-        # В обработке awaiting_weight:
-
         elif state == "awaiting_weight":
-
             try:
-
                 weight = int(text)
-
                 baby = Baby.get_current()
-
+                user_name = update.effective_user.first_name
                 if baby:
-
-                    await EventService.add_weight(context, baby['id'], user_id, weight)
-
+                    from services.event_service import EventService
+                    await EventService.add_weight(context, baby['id'], user_id, user_name, weight)
                     UserState.clear_state(user_id)
-
-                    await update.message.reply_text(f"✅ Вес {weight}г записан!")
-
-                    await BaseHandler.show_main_menu(update, context)
-
+                    await update.message.reply_text(
+                        f"✅ Вес {weight}г записан! Выберите следующее действие:",
+                        reply_markup=main_menu_keyboard()
+                    )
                 else:
-
                     await update.message.reply_text("❌ Ошибка: ребенок не найден")
-
             except ValueError:
-
                 await update.message.reply_text("❌ Введите число (вес в граммах)")
+
+    @staticmethod
+    async def handle_gender_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, gender: str):
+        """Обработчик выбора пола"""
+        query = update.callback_query
+        await query.answer()
+
+        user_id = update.effective_user.id
+        user_state = UserState.get_state(user_id)
+
+        if not user_state or user_state['state'] != "awaiting_baby_gender":
+            await query.edit_message_text("❌ Ошибка: неверное состояние")
+            return
+
+        state_data = user_state.get('data', {})
+        baby_name = state_data.get('name')
+        birth_date = state_data.get('birth_date')
+
+        if not baby_name or not birth_date:
+            await query.edit_message_text("❌ Ошибка: данные ребенка не найдены")
+            return
+
+        # Добавляем ребенка с полом
+        baby_id = Baby.add(baby_name, birth_date, gender)
+        UserState.clear_state(user_id)
+
+        gender_text = "мальчик" if gender == "male" else "девочка"
+        await query.edit_message_text(
+            f"✅ Ребенок {baby_name} добавлен!\n"
+            f"Дата рождения: {birth_date.strftime('%d.%m.%Y')}\n"
+            f"Пол: {gender_text}\n\n"
+            f"Выберите действие:",
+            reply_markup=main_menu_keyboard()
+        )

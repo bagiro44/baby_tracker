@@ -60,6 +60,13 @@ def setup_handlers(application):
         pattern="^main_menu$"
     ))
 
+    # Gender selection handler
+    application.add_handler(CallbackQueryHandler(
+        lambda update, context: BaseHandler.handle_gender_selection(update, context,
+                                                                    update.callback_query.data.replace("gender_", "")),
+        pattern="^gender_"
+    ))
+
     # Feeding handlers
     application.add_handler(CallbackQueryHandler(
         lambda update, context: FeedingHandler.handle_feeding(update, context, "breast_feeding"),

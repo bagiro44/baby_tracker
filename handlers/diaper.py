@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from models.baby import Baby
 from services.event_service import EventService
-from utils.keyboards import diaper_type_keyboard, back_to_main_keyboard
+from utils.keyboards import diaper_type_keyboard, main_menu_keyboard
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ class DiaperHandler:
         await query.answer()
 
         user_id = update.effective_user.id
+        user_name = update.effective_user.first_name
         baby = Baby.get_current()
 
         if not baby:
@@ -37,5 +38,8 @@ class DiaperHandler:
             'mixed': 'смешанный'
         }
 
-        await EventService.add_diaper(context, baby['id'], user_id, type_names.get(diaper_type, diaper_type))
-        await query.edit_message_text(f"✅ Подгузник записан!", reply_markup=back_to_main_keyboard())
+        await EventService.add_diaper(context, baby['id'], user_id, user_name, type_names.get(diaper_type, diaper_type))
+        await query.edit_message_text(
+            f"✅ Подгузник записан! Выберите следующее действие:",
+            reply_markup=main_menu_keyboard()
+        )
