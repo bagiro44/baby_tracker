@@ -10,10 +10,6 @@ logger = logging.getLogger(__name__)
 class Database:
     def __init__(self):
         self.db_config = DB_CONFIG
-        # self.db_config.update({
-        #     'sslmode': 'verify-full',
-        #     'sslrootcert': 'root.crt'  # убедитесь что файл существует
-        # })
 
     @contextmanager
     def get_connection(self):
@@ -67,5 +63,4 @@ class Database:
                 return cur.fetchall()
 
 
-# Initialize database
 db = Database()

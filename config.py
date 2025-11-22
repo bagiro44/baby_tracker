@@ -3,17 +3,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database configuration
+# Database configuration (Yandex Cloud)
 DB_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'database': os.getenv('DB_NAME', 'baby_tracker'),
-    'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', '')
+    'host': os.getenv('DB_HOST'),
+    'port': os.getenv('DB_PORT', '6432'),
+    'database': os.getenv('DB_NAME'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    # 'sslmode': 'verify-full',
+    # 'sslrootcert': 'root.crt'
 }
 
-# Telegram Bot configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+ADMIN_USER_IDS = list(map(int, os.getenv('ADMIN_USER_IDS', '').split(',')))
+GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 
-# Other settings
-ADMIN_USER_ID = int(os.getenv('ADMIN_USER_ID', 0))
+# Feeding settings
+FEEDING_INTERVAL_HOURS = 3
+REMINDER_MINUTES_BEFORE = 30
+
+# Timezone
+TIMEZONE = 'Europe/Moscow'
