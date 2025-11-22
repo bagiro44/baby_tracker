@@ -1,43 +1,35 @@
 import logging
-from telegram.ext import Application
-from leo_bot.config import BOT_TOKEN, logger
-from leo_bot.handlers.base import setup_handlers
-from leo_bot.handlers.conversations import setup_conversation_handlers
-from leo_bot.handlers.commands import setup_command_handlers
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from config import BOT_TOKEN
+from models import init_database
+import bot_handlers
 
-
-async def setup_application():
-    """Настройка и запуск приложения"""
-    application = Application.builder().token(BOT_TOKEN).build()
-
-    # Регистрируем обработчики
-    setup_command_handlers(application)
-    setup_conversation_handlers(application)
-    setup_handlers(application)
-
-    return application
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 
 def main():
-    """Основная функция запуска бота"""
-    try:
-        logger.info("Запуск бота...")
+    # Initialize database
+    logger.info("Initializing database...")
+    init_database()
+    logger.info("Database initialized successfully")
 
-        # Создаем приложение
-        application = Application.builder().token(BOT_TOKEN).build()
+    # Create application
+    application = Application.builder().token(BOT_TOKEN).build()
 
-        # Регистрируем обработчики
-        setup_command_handlers(application)
-        setup_conversation_handlers(application)
-        setup_handlers(application)
+    # Add handlers
+    application.add_handler(CommandHandler("start", bot_handlers.start))
+    application.add_handler(CallbackQueryHandler(bot_handlers.handle_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, bot_handlers.handle_message))
 
-        logger.info("Бот запущен в режиме polling")
-        application.run_polling()
-
-    except Exception as e:
-        logger.error(f"Ошибка при запуске бота: {e}")
-        raise
+    # Start the bot
+    logger.info("Bot starting...")
+    application.run_polling()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
