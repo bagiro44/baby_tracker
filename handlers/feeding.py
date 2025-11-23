@@ -138,7 +138,8 @@ class FeedingHandler:
         if minutes_str == "custom":
             UserState.set_state(user_id, "awaiting_custom_time", {
                 "action_type": "bottle_feeding",
-                "baby_id": baby['id']
+                "baby_id": baby['id'],
+                "volume": volume
             })
             await query.edit_message_text("Введите время в формате ЧЧММ (например, 1430):")
             return

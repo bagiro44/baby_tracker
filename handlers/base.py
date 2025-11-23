@@ -99,11 +99,14 @@ class BaseHandler:
             user_name = update.effective_user.first_name
 
             if action_type == "bottle_feeding":
-                UserState.set_state(user_id, "awaiting_bottle_volume", {
-                    "baby_id": baby_id,
-                    "timestamp": custom_time
-                })
-                await update.message.reply_text("Введите объем смеси в мл:")
+                from services.event_service import EventService
+                UserState.clear_state(user_id)
+                volume = state_data.get('volume')
+                await EventService.add_bottle_feeding(context, baby_id, user_id, user_name, volume, custom_time)
+                await update.message.reply_text(
+                    "✅ Бутылочка записана!",
+                    reply_markup=main_menu_keyboard()
+                )
             elif action_type == "sleep_start":
                 from services.event_service import EventService
                 await EventService.start_sleep(context, baby_id, user_id, user_name, custom_time)
