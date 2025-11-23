@@ -1,15 +1,16 @@
 import logging
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, JobQueue
 import pytz
 
 from config import BOT_TOKEN, TIMEZONE
+
+# Импорты моделей
 from models.baby import Baby
 from models.event import Event
 from models.user import UserState
-from models.reminder import Reminder  # ДОБАВЛЕНО
+from models.reminder import Reminder
 
+# Импорты обработчиков
 from handlers.base import BaseHandler
 from handlers.feeding import FeedingHandler
 from handlers.sleep import SleepHandler
@@ -24,13 +25,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def init_database():
     """Initialize all database tables"""
     Baby.create_table()
     Event.create_table()
     UserState.create_table()
-    Reminder.create_table()  # ДОБАВЛЕНО
+    Reminder.create_table()
     logger.info("Database tables initialized")
+
 
 async def check_reminders(context):
     """Check and send reminders"""
@@ -158,34 +161,38 @@ def setup_handlers(application):
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, BaseHandler.handle_message))
 
 
+def setup_job_queue(application):
+    """Setup job queue for reminders"""
+    job_queue = application.job_queue
+
+    # Check reminders every minute
+    job_queue.run_repeating(
+        check_reminders,
+        interval=60,  # 60 seconds = 1 minute
+        first=10,  # Start after 10 seconds
+        name="reminder_check"
+    )
+
+    logger.info("Job queue setup completed")
+
+
 def main():
     # Initialize database
     logger.info("Initializing database...")
     init_database()
 
-    # Create application
+    # Create application with job queue
     application = Application.builder().token(BOT_TOKEN).build()
 
     # Setup handlers
     setup_handlers(application)
 
-    # Setup scheduler for reminders - ОБНОВЛЕНО
-    scheduler = BackgroundScheduler(timezone=pytz.timezone(TIMEZONE))
-    scheduler.add_job(
-        check_reminders,
-        trigger=IntervalTrigger(minutes=1),  # Проверяем каждую минуту
-        args=[application],
-        id='reminder_check',
-        replace_existing=True
-    )
-    scheduler.start()
+    # Setup job queue for reminders
+    setup_job_queue(application)
 
     # Start the bot
     logger.info("Bot starting...")
     application.run_polling()
-
-    # Shutdown scheduler when bot stops
-    scheduler.shutdown()
 
 
 if __name__ == '__main__':

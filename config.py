@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database configuration (Yandex Cloud)
 DB_CONFIG = {
     'host': os.getenv('DB_HOST'),
     'port': os.getenv('DB_PORT', '6432'),
@@ -18,9 +17,7 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMIN_USER_IDS = list(map(int, os.getenv('ADMIN_USER_IDS', '').split(',')))
 GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 
-# Feeding settings
 FEEDING_INTERVAL_HOURS = 3
-REMINDER_MINUTES_BEFORE = 30
+REMINDER_MINUTES_BEFORE = 179
 
-# Timezone
 TIMEZONE = 'Europe/Moscow'

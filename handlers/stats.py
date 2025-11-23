@@ -42,9 +42,8 @@ class StatsHandler:
                 await query.edit_message_text("❌ Сначала добавьте ребенка")
                 return
 
-            # Определяем период в часах
             if period == "today":
-                period_hours = None  # Сегодня с 00:00
+                period_hours = None
                 period_name = "сегодня"
             elif period == "24h":
                 period_hours = 24
@@ -56,7 +55,6 @@ class StatsHandler:
                 period_hours = 24
                 period_name = "последние 24 часа"
 
-            # Получаем статистику
             stats = StatsService.get_stats(baby['id'], period_hours)
 
             if stats:

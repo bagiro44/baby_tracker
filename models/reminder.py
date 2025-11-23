@@ -50,6 +50,7 @@ class Reminder:
 
     @staticmethod
     def delete_old_reminders(days=7):
-        """Delete old sent reminders"""
+        """Delete old sent reminders and return count of deleted rows"""
         query = "DELETE FROM reminders WHERE sent = TRUE AND created_at < NOW() - INTERVAL '%s days'"
-        db.execute_query(query, (days,))
+        result = db.execute_query(query, (days,))
+        return result

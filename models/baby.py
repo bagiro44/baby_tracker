@@ -33,7 +33,6 @@ class Baby:
 
     @staticmethod
     def get_current():
-        # For now, assume one baby. Can be extended for multiple babies
         babies = Baby.get_all()
         return babies[0] if babies else None
 

@@ -13,13 +13,11 @@ class BaseHandler:
     async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
 
-        # Check if user is authorized
         from config import ADMIN_USER_IDS
         if user.id not in ADMIN_USER_IDS:
             await update.message.reply_text("❌ У вас нет доступа к этому боту.")
             return
 
-        # Check if baby exists
         baby = Baby.get_current()
         if not baby:
             UserState.set_state(user.id, "awaiting_baby_name")
@@ -32,15 +30,11 @@ class BaseHandler:
     async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "Выберите действие:"
 
-        # Проверяем тип update и соответствующим образом отвечаем
         if update.message:
-            # Если это обычное сообщение
             await update.message.reply_text(text, reply_markup=main_menu_keyboard())
         elif update.callback_query:
-            # Если это callback от кнопки
             await update.callback_query.edit_message_text(text, reply_markup=main_menu_keyboard())
         else:
-            # Fallback - отправляем новое сообщение
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=text,
@@ -49,7 +43,6 @@ class BaseHandler:
 
     @staticmethod
     async def handle_main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Обработчик для кнопки главного меню"""
         query = update.callback_query
         await query.answer()
         await BaseHandler.show_main_menu(update, context)
@@ -77,7 +70,6 @@ class BaseHandler:
                 state_data = user_state.get('data', {})
                 baby_name = state_data.get('name', '')
 
-                # Сохраняем данные и переходим к выбору пола
                 UserState.set_state(user_id, "awaiting_baby_gender", {
                     "name": baby_name,
                     "birth_date": birth_date
@@ -91,7 +83,6 @@ class BaseHandler:
                 await update.message.reply_text("❌ Неверный формат даты. Используйте ДД.ММ.ГГГГ")
 
         elif state == "awaiting_baby_gender":
-            # Этот обработчик будет вызван через callback, но на всякий случай оставим
             await update.message.reply_text("Пожалуйста, выберите пол используя кнопки ниже")
 
         elif state == "awaiting_custom_time":
@@ -188,7 +179,6 @@ class BaseHandler:
 
     @staticmethod
     async def handle_gender_selection(update: Update, context: ContextTypes.DEFAULT_TYPE, gender: str):
-        """Обработчик выбора пола"""
         query = update.callback_query
         await query.answer()
 
@@ -207,7 +197,6 @@ class BaseHandler:
             await query.edit_message_text("❌ Ошибка: данные ребенка не найдены")
             return
 
-        # Добавляем ребенка с полом
         baby_id = Baby.add(baby_name, birth_date, gender)
         UserState.clear_state(user_id)
 

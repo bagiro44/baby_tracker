@@ -2,7 +2,6 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from models.baby import Baby
 from models.user import UserState
-from services.event_service import EventService
 from utils.keyboards import main_menu_keyboard
 import logging
 

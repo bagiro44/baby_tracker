@@ -34,6 +34,8 @@ class NotificationService:
 
     @staticmethod
     def format_next_feeding(baby, next_time):
+        from datetime import datetime
+
         now = datetime.now(pytz.timezone(TIMEZONE))
         time_left = next_time - now
 

@@ -22,7 +22,6 @@ class SleepHandler:
             await query.edit_message_text("❌ Сначала добавьте ребенка")
             return
 
-        # Проверяем, нет ли уже активного сна
         active_sleep = Event.get_active_sleep(baby['id'])
         if active_sleep:
             start_time = active_sleep['timestamp'].astimezone(context.bot.defaults.tzinfo).strftime('%H:%M')
@@ -47,7 +46,6 @@ class SleepHandler:
             await query.edit_message_text("❌ Сначала добавьте ребенка")
             return
 
-        # Проверяем, есть ли активный сон
         active_sleep = Event.get_active_sleep(baby['id'])
         if not active_sleep:
             await query.edit_message_text(

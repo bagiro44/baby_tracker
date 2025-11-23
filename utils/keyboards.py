@@ -1,5 +1,4 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from config import ADMIN_USER_IDS
 from utils.time_utils import format_time_with_offset
 
 def main_menu_keyboard():
@@ -26,7 +25,6 @@ def gender_selection_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def time_selection_keyboard(action):
-    # Формируем кнопки с точным временем
     keyboard = [
         [InlineKeyboardButton(format_time_with_offset(0), callback_data=f"time_{action}_0")],
         [

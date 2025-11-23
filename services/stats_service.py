@@ -1,13 +1,12 @@
+from services.database import db
 from datetime import datetime, timedelta
 import pytz
 from config import TIMEZONE
-from services.database import db
 
 
 class StatsService:
     @staticmethod
     def get_stats(baby_id, period_hours=None):
-        """Получить статистику за указанный период"""
         from models.baby import Baby
         from models.event import Event
 
@@ -15,15 +14,12 @@ class StatsService:
         if not baby:
             return None
 
-        # Определяем временной диапазон
         if period_hours:
             start_time = datetime.now(pytz.timezone(TIMEZONE)) - timedelta(hours=period_hours)
         else:
-            # По умолчанию - сегодня с 00:00
             today = datetime.now(pytz.timezone(TIMEZONE)).date()
             start_time = pytz.timezone(TIMEZONE).localize(datetime.combine(today, datetime.min.time()))
 
-        # Получаем события за период
         query = """
         SELECT * FROM events 
         WHERE baby_id = %s AND timestamp >= %s 
@@ -31,7 +27,6 @@ class StatsService:
         """
         events = db.fetch_all(query, (baby_id, start_time))
 
-        # Анализируем события
         stats = {
             'baby': baby,
             'period_start': start_time,
@@ -47,7 +42,6 @@ class StatsService:
             'weight_entries': []
         }
 
-        # Обрабатываем события
         sleep_sessions = []
         breast_sessions = []
         current_sleep_start = None
@@ -102,7 +96,6 @@ class StatsService:
             elif event_type == Event.WEIGHT:
                 stats['weight_entries'].append(event)
 
-        # Если есть активный сон, добавляем его как незавершенный
         if current_sleep_start:
             active_sleep_duration = int(
                 (datetime.now(pytz.timezone(TIMEZONE)) - current_sleep_start['timestamp']).total_seconds() / 60)
@@ -110,7 +103,6 @@ class StatsService:
             stats['total_sleep_minutes'] += active_sleep_duration
             stats['active_sleep'] = current_sleep_start
 
-        # Если есть активное грудное кормление, добавляем его как незавершенное
         if current_breast_start:
             active_breast_duration = int(
                 (datetime.now(pytz.timezone(TIMEZONE)) - current_breast_start['timestamp']).total_seconds() / 60)
@@ -118,7 +110,6 @@ class StatsService:
             stats['total_breast_feeding_minutes'] += active_breast_duration
             stats['active_breast_feeding'] = current_breast_start
 
-        # Сортируем сессии по времени окончания
         sleep_sessions.sort(key=lambda x: x['end'], reverse=True)
         breast_sessions.sort(key=lambda x: x['end'], reverse=True)
 
@@ -129,7 +120,6 @@ class StatsService:
 
     @staticmethod
     def format_stats(stats):
-        """Форматировать статистику в читаемый текст"""
         from services.event_service import EventService
         from models.event import Event
 
@@ -139,7 +129,6 @@ class StatsService:
         baby = stats['baby']
         text = f"📊 Статистика для {baby['name']}\n\n"
 
-        # Период
         period_start = stats['period_start']
         now = datetime.now(pytz.timezone(TIMEZONE))
         if (now - period_start).days > 0:
@@ -149,7 +138,6 @@ class StatsService:
 
         text += f"📅 Период: {period_text}\n\n"
 
-        # Кормление из бутылочки
         text += "🍼 Кормление из бутылочки:\n"
         if stats['bottle_feedings'] > 0:
             text += f"  • Количество: {stats['bottle_feedings']}\n"
@@ -162,7 +150,6 @@ class StatsService:
                 last_time = last_bottle['timestamp'].astimezone(pytz.timezone(TIMEZONE)).strftime('%H:%M')
                 text += f"  • Последнее: {last_time} ({last_bottle['amount']} мл)\n"
 
-            # Следующее кормление
             next_time = EventService.get_next_feeding_time(baby['id'])
             if next_time:
                 time_left = next_time - datetime.now(pytz.timezone(TIMEZONE))
@@ -180,7 +167,6 @@ class StatsService:
 
         text += "\n"
 
-        # Сон
         text += "😴 Сон:\n"
         if stats['sleep_sessions'] > 0:
             total_hours = stats['total_sleep_minutes'] // 60
@@ -213,7 +199,6 @@ class StatsService:
 
         text += "\n"
 
-        # Грудное кормление
         text += "🤱 Грудное кормление:\n"
         if stats['breast_feeding_sessions'] > 0:
             breast_hours = stats['total_breast_feeding_minutes'] // 60
@@ -224,7 +209,6 @@ class StatsService:
             if stats['breast_feeding_sessions'] > 0:
                 text += f"  • Средняя продолжительность: {stats['total_breast_feeding_minutes'] // stats['breast_feeding_sessions']}м\n"
 
-            # Анализ по грудям
             left_breast_count = sum(
                 1 for session in stats['breast_sessions_list'] if session.get('breast_side') == 'left')
             right_breast_count = sum(
@@ -245,10 +229,8 @@ class StatsService:
 
         text += "\n"
 
-        # Подгузники
         text += f"💩 Подгузники: {stats['diaper_changes']} смен\n"
 
-        # Вес
         if stats['weight_entries']:
             latest_weight = max(stats['weight_entries'], key=lambda x: x['timestamp'])
             text += f"⚖️ Последний вес: {latest_weight['amount']}г\n"

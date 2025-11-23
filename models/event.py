@@ -5,7 +5,6 @@ from config import TIMEZONE
 
 
 class Event:
-    # Event types
     SLEEP_START = 'sleep_start'
     SLEEP_END = 'sleep_end'
     BREAST_FEEDING_START = 'breast_feeding_start'
@@ -31,7 +30,6 @@ class Event:
         """
         db.execute_query(query)
 
-        # Create indexes
         indexes = [
             "CREATE INDEX IF NOT EXISTS idx_events_baby_id ON events(baby_id)",
             "CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)",
@@ -75,7 +73,6 @@ class Event:
 
     @staticmethod
     def get_active_sleep(baby_id):
-        """Get active sleep session (started but not ended)"""
         query = """
         SELECT * FROM events 
         WHERE baby_id = %s AND event_type = %s 
@@ -92,7 +89,6 @@ class Event:
 
     @staticmethod
     def get_active_breast_feeding(baby_id):
-        """Get active breast feeding session"""
         query = """
         SELECT * FROM events 
         WHERE baby_id = %s AND event_type = %s 

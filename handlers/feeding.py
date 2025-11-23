@@ -144,8 +144,11 @@ class FeedingHandler:
             return
 
         minutes = int(minutes_str)
+        # Убедимся, что timestamp не None
         timestamp = get_time_with_offset(minutes) if minutes > 0 else None
 
+        # Если timestamp None (когда minutes = 0), то передаем None,
+        # но в EventService.add_bottle_feeding мы это обработаем
         await EventService.add_bottle_feeding(context, baby['id'], user_id, user_name, volume, timestamp)
         await query.edit_message_text(
             f"✅ Кормление {volume}мл записано! Выберите следующее действие:",

@@ -1,7 +1,10 @@
 from services.notification_service import NotificationService
 from datetime import datetime, timedelta
 import pytz
-from config import TIMEZONE, FEEDING_INTERVAL_HOURS
+from config import TIMEZONE, FEEDING_INTERVAL_HOURS, REMINDER_MINUTES_BEFORE
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class EventService:
@@ -9,7 +12,7 @@ class EventService:
     def get_gender_specific_text(baby, base_text_male, base_text_female, base_text_unknown=None):
         """Возвращает текст с учетом пола ребенка"""
         if base_text_unknown is None:
-            base_text_unknown = base_text_male  # По умолчанию используем мужской род
+            base_text_unknown = base_text_male
 
         gender = baby.get('gender', 'unknown')
         if gender == 'male':
@@ -53,7 +56,7 @@ class EventService:
 
         start_time = sleep_start['timestamp']
         end_time = timestamp or datetime.now(pytz.timezone(TIMEZONE))
-        duration = int((end_time - start_time).total_seconds() / 60)  # minutes
+        duration = int((end_time - start_time).total_seconds() / 60)
 
         event_id = Event.add(baby_id, Event.SLEEP_END, user_id, duration=duration, timestamp=end_time)
         baby = Baby.get_by_id(baby_id)
@@ -95,7 +98,7 @@ class EventService:
         feeding_text = EventService.get_gender_specific_text(
             baby,
             "Начато грудное кормление",
-            "Начато грудное кормление",  # Текст одинаковый
+            "Начато грудное кормление",
             "Начато грудное кормление"
         )
 
@@ -118,7 +121,7 @@ class EventService:
 
         start_time = feeding_start['timestamp']
         end_time = timestamp or datetime.now(pytz.timezone(TIMEZONE))
-        duration = int((end_time - start_time).total_seconds() / 60)  # minutes
+        duration = int((end_time - start_time).total_seconds() / 60)
 
         breast_text = "левой" if breast_side == "left" else "правой"
         event_id = Event.add(baby_id, Event.BREAST_FEEDING_END, user_id,
@@ -128,7 +131,7 @@ class EventService:
         feeding_text = EventService.get_gender_specific_text(
             baby,
             "Завершено грудное кормление",
-            "Завершено грудное кормление",  # Текст одинаковый
+            "Завершено грудное кормление",
             "Завершено грудное кормление"
         )
 
@@ -144,6 +147,10 @@ class EventService:
     async def add_bottle_feeding(context, baby_id, user_id, user_name, amount, timestamp=None):
         from models.event import Event
         from models.baby import Baby
+
+        # Убедимся, что timestamp не None для расчета напоминания
+        if timestamp is None:
+            timestamp = datetime.now(pytz.timezone(TIMEZONE))
 
         event_id = Event.add(baby_id, Event.BOTTLE_FEEDING, user_id, amount=amount, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
@@ -162,9 +169,14 @@ class EventService:
             timestamp
         )
 
-        # Schedule next feeding reminder - ДОБАВЛЕНО
+        # Schedule next feeding reminder
         from services.reminder_service import ReminderService
-        ReminderService.schedule_feeding_reminder(baby_id, timestamp)
+        reminder_id = ReminderService.schedule_feeding_reminder(baby_id, timestamp)
+
+        if reminder_id:
+            next_reminder_time = timestamp + timedelta(hours=FEEDING_INTERVAL_HOURS) - timedelta(
+                minutes=REMINDER_MINUTES_BEFORE)
+            logger.info(f"Next feeding reminder scheduled for {next_reminder_time}")
 
         return event_id
 
@@ -207,7 +219,7 @@ class EventService:
         diaper_text = EventService.get_gender_specific_text(
             baby,
             "Смена подгузника",
-            "Смена подгузника",  # Текст одинаковый
+            "Смена подгузника",
             "Смена подгузника"
         )
 
@@ -222,7 +234,6 @@ class EventService:
     @staticmethod
     def get_next_feeding_time(baby_id):
         from models.event import Event
-        from services.notification_service import NotificationService
 
         last_feeding = Event.get_last_by_type(baby_id, Event.BOTTLE_FEEDING)
         if not last_feeding:
