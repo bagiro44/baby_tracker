@@ -14,45 +14,86 @@ logger = logging.getLogger(__name__)
 
 class FeedingHandler:
     @staticmethod
-    async def handle_feeding(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str):
+    async def handle_breast_start_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
 
-        user_id = update.effective_user.id
         baby = Baby.get_current()
-
         if not baby:
             await query.edit_message_text("❌ Сначала добавьте ребенка")
             return
 
-        if action == "breast_feeding":
-            active_feeding = Event.get_active_breast_feeding(baby['id'])
-            if active_feeding:
-                # Show end feeding with time selection
-                await query.edit_message_text(
-                    "Завершить грудное кормление:",
-                    reply_markup=time_selection_keyboard("breast_end")
-                )
-            else:
-                # Show start feeding with time selection
-                await query.edit_message_text(
-                    "Начать грудное кормление:",
-                    reply_markup=time_selection_keyboard("breast_start")
-                )
-
-        elif action == "bottle_feeding":
+        # Проверяем, нет ли уже активного кормления
+        active_feeding = Event.get_active_breast_feeding(baby['id'])
+        if active_feeding:
+            start_time = active_feeding['timestamp'].astimezone(context.bot.defaults.tzinfo).strftime('%H:%M')
             await query.edit_message_text(
-                "Выберите объем смеси:",
-                reply_markup=bottle_volume_keyboard()
+                f"❌ Уже есть активное кормление, начатое в {start_time}. Завершите его сначала.",
+                reply_markup=main_menu_keyboard()
             )
+            return
 
-        elif action == "next_feeding":
-            next_time = EventService.get_next_feeding_time(baby['id'])
-            if next_time:
-                message = NotificationService.format_next_feeding(baby, next_time)
-            else:
-                message = "❌ Не найдено предыдущих кормлений"
-            await query.edit_message_text(message, reply_markup=main_menu_keyboard())
+        await query.edit_message_text(
+            "Когда началось кормление?",
+            reply_markup=time_selection_keyboard("breast_start")
+        )
+
+    @staticmethod
+    async def handle_breast_end_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+
+        baby = Baby.get_current()
+        if not baby:
+            await query.edit_message_text("❌ Сначала добавьте ребенка")
+            return
+
+        # Проверяем, есть ли активное кормление
+        active_feeding = Event.get_active_breast_feeding(baby['id'])
+        if not active_feeding:
+            await query.edit_message_text(
+                "❌ Нет активного кормления для завершения.",
+                reply_markup=main_menu_keyboard()
+            )
+            return
+
+        start_time = active_feeding['timestamp'].astimezone(context.bot.defaults.tzinfo).strftime('%H:%M')
+        await query.edit_message_text(
+            f"Кормление начато в {start_time}. Когда оно закончилось?",
+            reply_markup=time_selection_keyboard("breast_end")
+        )
+
+    @staticmethod
+    async def handle_bottle_feeding(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+
+        baby = Baby.get_current()
+        if not baby:
+            await query.edit_message_text("❌ Сначала добавьте ребенка")
+            return
+
+        await query.edit_message_text(
+            "Выберите объем смеси:",
+            reply_markup=bottle_volume_keyboard()
+        )
+
+    @staticmethod
+    async def handle_next_feeding(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+
+        baby = Baby.get_current()
+        if not baby:
+            await query.edit_message_text("❌ Сначала добавьте ребенка")
+            return
+
+        next_time = EventService.get_next_feeding_time(baby['id'])
+        if next_time:
+            message = NotificationService.format_next_feeding(baby, next_time)
+        else:
+            message = "❌ Не найдено предыдущих кормлений"
+        await query.edit_message_text(message, reply_markup=main_menu_keyboard())
 
     @staticmethod
     async def handle_bottle_volume(update: Update, context: ContextTypes.DEFAULT_TYPE, volume_str: str):
@@ -161,8 +202,9 @@ class FeedingHandler:
         UserState.clear_state(user_id)
 
         if result:
+            event_id, duration = result
             await query.edit_message_text(
-                "✅ Конец кормления записан! Выберите следующее действие:",
+                f"✅ Конец кормления записан! Продолжительность: {duration}м. Выберите следующее действие:",
                 reply_markup=main_menu_keyboard()
             )
         else:

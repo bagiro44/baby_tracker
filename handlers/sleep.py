@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class SleepHandler:
     @staticmethod
-    async def handle_sleep(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def handle_sleep_start_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
 
@@ -22,18 +22,45 @@ class SleepHandler:
             await query.edit_message_text("❌ Сначала добавьте ребенка")
             return
 
+        # Проверяем, нет ли уже активного сна
         active_sleep = Event.get_active_sleep(baby['id'])
-
         if active_sleep:
+            start_time = active_sleep['timestamp'].astimezone(context.bot.defaults.tzinfo).strftime('%H:%M')
             await query.edit_message_text(
-                "Завершить сон:",
-                reply_markup=time_selection_keyboard("sleep_end")
+                f"❌ Уже есть активный сон, начатый в {start_time}. Завершите его сначала.",
+                reply_markup=main_menu_keyboard()
             )
-        else:
+            return
+
+        await query.edit_message_text(
+            "Когда начался сон?",
+            reply_markup=time_selection_keyboard("sleep_start")
+        )
+
+    @staticmethod
+    async def handle_sleep_end_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        query = update.callback_query
+        await query.answer()
+
+        baby = Baby.get_current()
+        if not baby:
+            await query.edit_message_text("❌ Сначала добавьте ребенка")
+            return
+
+        # Проверяем, есть ли активный сон
+        active_sleep = Event.get_active_sleep(baby['id'])
+        if not active_sleep:
             await query.edit_message_text(
-                "Начать сон:",
-                reply_markup=time_selection_keyboard("sleep_start")
+                "❌ Нет активного сна для завершения.",
+                reply_markup=main_menu_keyboard()
             )
+            return
+
+        start_time = active_sleep['timestamp'].astimezone(context.bot.defaults.tzinfo).strftime('%H:%M')
+        await query.edit_message_text(
+            f"Сон начат в {start_time}. Когда он закончился?",
+            reply_markup=time_selection_keyboard("sleep_end")
+        )
 
     @staticmethod
     async def handle_sleep_time(update: Update, context: ContextTypes.DEFAULT_TYPE, action: str, minutes_str: str):
@@ -64,8 +91,12 @@ class SleepHandler:
         elif action == "end":
             result = await EventService.end_sleep(context, baby['id'], user_id, user_name, timestamp)
             if result:
+                event_id, duration = result
+                hours = duration // 60
+                minutes = duration % 60
+                duration_text = f"{hours}ч {minutes}м" if hours > 0 else f"{minutes}м"
                 await query.edit_message_text(
-                    "✅ Конец сна записан! Выберите следующее действие:",
+                    f"✅ Конец сна записан! Продолжительность: {duration_text}. Выберите следующее действие:",
                     reply_markup=main_menu_keyboard()
                 )
             else:

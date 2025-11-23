@@ -4,11 +4,14 @@ from utils.time_utils import format_time_with_offset
 
 def main_menu_keyboard():
     keyboard = [
-        [InlineKeyboardButton("😴 Сон", callback_data="sleep")],
-        [InlineKeyboardButton("🤱 Грудь", callback_data="breast_feeding")],
-        [InlineKeyboardButton("🍼 Бутылочка", callback_data="bottle_feeding")],
+        [InlineKeyboardButton("😴 Начать сон", callback_data="sleep_start_menu")],
+        [InlineKeyboardButton("🛌 Завершить сон", callback_data="sleep_end_menu")],
+        [InlineKeyboardButton("🤱 Начать кормление грудью", callback_data="breast_start_menu")],
+        [InlineKeyboardButton("✅ Завершить кормление грудью", callback_data="breast_end_menu")],
+        [InlineKeyboardButton("🍼 Кормление из бутылочки", callback_data="bottle_feeding")],
         [InlineKeyboardButton("💩 Подгузник", callback_data="diaper")],
         [InlineKeyboardButton("⚖️ Вес", callback_data="weight")],
+        [InlineKeyboardButton("📊 Статистика", callback_data="stats")],
         [InlineKeyboardButton("⏰ След. кормление", callback_data="next_feeding")]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -71,6 +74,15 @@ def diaper_type_keyboard():
         [InlineKeyboardButton("💦 Мокрый", callback_data="diaper_wet")],
         [InlineKeyboardButton("💩 Грязный", callback_data="diaper_dirty")],
         [InlineKeyboardButton("💦💩 Смешанный", callback_data="diaper_mixed")],
+        [InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+def stats_period_keyboard():
+    keyboard = [
+        [InlineKeyboardButton("📅 Сегодня", callback_data="stats_today")],
+        [InlineKeyboardButton("📆 Последние 24 часа", callback_data="stats_24h")],
+        [InlineKeyboardButton("🗓️ Последние 3 дня", callback_data="stats_3days")],
         [InlineKeyboardButton("🔙 Главное меню", callback_data="main_menu")]
     ]
     return InlineKeyboardMarkup(keyboard)

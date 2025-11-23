@@ -10,9 +10,11 @@ from models.user import UserState
 from services.reminder_service import ReminderService
 from services.notification_service import NotificationService
 
+
 from handlers.base import BaseHandler
 from handlers.feeding import FeedingHandler
 from handlers.sleep import SleepHandler
+from handlers.stats import StatsHandler
 from handlers.weight import WeightHandler
 from handlers.diaper import DiaperHandler
 
@@ -54,7 +56,7 @@ def setup_handlers(application):
     # Command handlers
     application.add_handler(CommandHandler("start", BaseHandler.start))
 
-    # Callback query handlers - ОБНОВЛЕННЫЙ ОБРАБОТЧИК
+    # Callback query handlers
     application.add_handler(CallbackQueryHandler(
         BaseHandler.handle_main_menu_callback,
         pattern="^main_menu$"
@@ -67,28 +69,36 @@ def setup_handlers(application):
         pattern="^gender_"
     ))
 
-    # Feeding handlers
+    # Sleep handlers
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: FeedingHandler.handle_feeding(update, context, "breast_feeding"),
-        pattern="^breast_feeding$"
+        lambda update, context: SleepHandler.handle_sleep_start_menu(update, context),
+        pattern="^sleep_start_menu$"
     ))
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: FeedingHandler.handle_feeding(update, context, "bottle_feeding"),
-        pattern="^bottle_feeding$"
+        lambda update, context: SleepHandler.handle_sleep_end_menu(update, context),
+        pattern="^sleep_end_menu$"
     ))
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: FeedingHandler.handle_feeding(update, context, "next_feeding"),
-        pattern="^next_feeding$"
+        lambda update, context: SleepHandler.handle_sleep_time(update, context, "start",
+                                                               update.callback_query.data.replace("time_sleep_start_",
+                                                                                                  "")),
+        pattern="^time_sleep_start_"
     ))
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: FeedingHandler.handle_bottle_volume(update, context,
-                                                                    update.callback_query.data.replace("volume_", "")),
-        pattern="^volume_"
+        lambda update, context: SleepHandler.handle_sleep_time(update, context, "end",
+                                                               update.callback_query.data.replace("time_sleep_end_",
+                                                                                                  "")),
+        pattern="^time_sleep_end_"
+    ))
+
+    # Breast feeding handlers
+    application.add_handler(CallbackQueryHandler(
+        lambda update, context: FeedingHandler.handle_breast_start_menu(update, context),
+        pattern="^breast_start_menu$"
     ))
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: FeedingHandler.handle_bottle_time(update, context, update.callback_query.data.replace(
-            "time_bottle_feeding_", "")),
-        pattern="^time_bottle_feeding_"
+        lambda update, context: FeedingHandler.handle_breast_end_menu(update, context),
+        pattern="^breast_end_menu$"
     ))
     application.add_handler(CallbackQueryHandler(
         lambda update, context: FeedingHandler.handle_breast_time(update, context, "start",
@@ -108,22 +118,35 @@ def setup_handlers(application):
         pattern="^breast_"
     ))
 
-    # Sleep handlers
+    # Bottle feeding handlers
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: SleepHandler.handle_sleep(update, context),
-        pattern="^sleep$"
+        lambda update, context: FeedingHandler.handle_bottle_feeding(update, context),
+        pattern="^bottle_feeding$"
     ))
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: SleepHandler.handle_sleep_time(update, context, "start",
-                                                               update.callback_query.data.replace("time_sleep_start_",
-                                                                                                  "")),
-        pattern="^time_sleep_start_"
+        lambda update, context: FeedingHandler.handle_bottle_volume(update, context,
+                                                                    update.callback_query.data.replace("volume_", "")),
+        pattern="^volume_"
     ))
     application.add_handler(CallbackQueryHandler(
-        lambda update, context: SleepHandler.handle_sleep_time(update, context, "end",
-                                                               update.callback_query.data.replace("time_sleep_end_",
-                                                                                                  "")),
-        pattern="^time_sleep_end_"
+        lambda update, context: FeedingHandler.handle_bottle_time(update, context, update.callback_query.data.replace(
+            "time_bottle_feeding_", "")),
+        pattern="^time_bottle_feeding_"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        lambda update, context: FeedingHandler.handle_next_feeding(update, context),
+        pattern="^next_feeding$"
+    ))
+
+    # Stats handlers
+    application.add_handler(CallbackQueryHandler(
+        lambda update, context: StatsHandler.handle_stats(update, context),
+        pattern="^stats$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        lambda update, context: StatsHandler.handle_stats_period(update, context,
+                                                                 update.callback_query.data.replace("stats_", "")),
+        pattern="^stats_"
     ))
 
     # Weight handler
