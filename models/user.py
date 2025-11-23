@@ -35,7 +35,7 @@ class UserState:
                 data_dict = json.loads(result['data'])
                 return {'state': result['state'], 'data': data_dict}
             except (json.JSONDecodeError, TypeError):
-                return {'state': result['state'], 'data': {}}
+                return {'state': result['state'], 'data': result['data']}
         elif result:
             return {'state': result['state'], 'data': {}}
         return None
