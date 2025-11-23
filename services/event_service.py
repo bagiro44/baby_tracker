@@ -1,5 +1,3 @@
-from models.event import Event
-from models.baby import Baby
 from services.notification_service import NotificationService
 from datetime import datetime, timedelta
 import pytz
@@ -23,6 +21,9 @@ class EventService:
 
     @staticmethod
     async def start_sleep(context, baby_id, user_id, user_name, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         event_id = Event.add(baby_id, Event.SLEEP_START, user_id, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
@@ -43,6 +44,9 @@ class EventService:
 
     @staticmethod
     async def end_sleep(context, baby_id, user_id, user_name, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         sleep_start = Event.get_active_sleep(baby_id)
         if not sleep_start:
             return None
@@ -82,6 +86,9 @@ class EventService:
 
     @staticmethod
     async def start_breast_feeding(context, baby_id, user_id, user_name, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         event_id = Event.add(baby_id, Event.BREAST_FEEDING_START, user_id, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
@@ -102,6 +109,9 @@ class EventService:
 
     @staticmethod
     async def end_breast_feeding(context, baby_id, user_id, user_name, breast_side, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         feeding_start = Event.get_active_breast_feeding(baby_id)
         if not feeding_start:
             return None
@@ -132,6 +142,9 @@ class EventService:
 
     @staticmethod
     async def add_bottle_feeding(context, baby_id, user_id, user_name, amount, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         event_id = Event.add(baby_id, Event.BOTTLE_FEEDING, user_id, amount=amount, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
@@ -149,14 +162,17 @@ class EventService:
             timestamp
         )
 
-        # Schedule next feeding reminder
+        # Schedule next feeding reminder - ДОБАВЛЕНО
         from services.reminder_service import ReminderService
-        ReminderService.schedule_next_feeding(baby_id, timestamp)
+        ReminderService.schedule_feeding_reminder(baby_id, timestamp)
 
         return event_id
 
     @staticmethod
     async def add_weight(context, baby_id, user_id, user_name, weight, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         event_id = Event.add(baby_id, Event.WEIGHT, user_id, amount=weight, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
@@ -170,6 +186,9 @@ class EventService:
 
     @staticmethod
     async def add_diaper(context, baby_id, user_id, user_name, diaper_type, timestamp=None):
+        from models.event import Event
+        from models.baby import Baby
+
         event_id = Event.add(baby_id, Event.DIAPER, user_id, notes=diaper_type, timestamp=timestamp)
         baby = Baby.get_by_id(baby_id)
 
@@ -202,6 +221,9 @@ class EventService:
 
     @staticmethod
     def get_next_feeding_time(baby_id):
+        from models.event import Event
+        from services.notification_service import NotificationService
+
         last_feeding = Event.get_last_by_type(baby_id, Event.BOTTLE_FEEDING)
         if not last_feeding:
             return None

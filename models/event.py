@@ -77,32 +77,32 @@ class Event:
     def get_active_sleep(baby_id):
         """Get active sleep session (started but not ended)"""
         query = """
-            SELECT * FROM events 
-            WHERE baby_id = %s AND event_type = %s 
-            AND NOT EXISTS (
-                SELECT 1 FROM events e2 
-                WHERE e2.baby_id = events.baby_id 
-                AND e2.event_type = %s 
-                AND e2.timestamp > events.timestamp
-            )
-            ORDER BY timestamp DESC 
-            LIMIT 1
-            """
+        SELECT * FROM events 
+        WHERE baby_id = %s AND event_type = %s 
+        AND NOT EXISTS (
+            SELECT 1 FROM events e2 
+            WHERE e2.baby_id = events.baby_id 
+            AND e2.event_type = %s 
+            AND e2.timestamp > events.timestamp
+        )
+        ORDER BY timestamp DESC 
+        LIMIT 1
+        """
         return db.fetch_one(query, (baby_id, Event.SLEEP_START, Event.SLEEP_END))
 
     @staticmethod
     def get_active_breast_feeding(baby_id):
         """Get active breast feeding session"""
         query = """
-            SELECT * FROM events 
-            WHERE baby_id = %s AND event_type = %s 
-            AND NOT EXISTS (
-                SELECT 1 FROM events e2 
-                WHERE e2.baby_id = events.baby_id 
-                AND e2.event_type = %s 
-                AND e2.timestamp > events.timestamp
-            )
-            ORDER BY timestamp DESC 
-            LIMIT 1
-            """
+        SELECT * FROM events 
+        WHERE baby_id = %s AND event_type = %s 
+        AND NOT EXISTS (
+            SELECT 1 FROM events e2 
+            WHERE e2.baby_id = events.baby_id 
+            AND e2.event_type = %s 
+            AND e2.timestamp > events.timestamp
+        )
+        ORDER BY timestamp DESC 
+        LIMIT 1
+        """
         return db.fetch_one(query, (baby_id, Event.BREAST_FEEDING_START, Event.BREAST_FEEDING_END))

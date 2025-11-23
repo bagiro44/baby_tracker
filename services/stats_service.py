@@ -1,16 +1,16 @@
-from models.event import Event
-from models.baby import Baby
 from datetime import datetime, timedelta
 import pytz
 from config import TIMEZONE
-from services.event_service import EventService
-from services.database import db  # Добавляем импорт db
+from services.database import db
 
 
 class StatsService:
     @staticmethod
     def get_stats(baby_id, period_hours=None):
         """Получить статистику за указанный период"""
+        from models.baby import Baby
+        from models.event import Event
+
         baby = Baby.get_by_id(baby_id)
         if not baby:
             return None
@@ -23,13 +23,13 @@ class StatsService:
             today = datetime.now(pytz.timezone(TIMEZONE)).date()
             start_time = pytz.timezone(TIMEZONE).localize(datetime.combine(today, datetime.min.time()))
 
-        # Получаем события за период - ИСПРАВЛЕНО: используем db напрямую
+        # Получаем события за период
         query = """
         SELECT * FROM events 
         WHERE baby_id = %s AND timestamp >= %s 
         ORDER BY timestamp DESC
         """
-        events = db.fetch_all(query, (baby_id, start_time))  # Заменили Event.db на db
+        events = db.fetch_all(query, (baby_id, start_time))
 
         # Анализируем события
         stats = {
@@ -130,6 +130,9 @@ class StatsService:
     @staticmethod
     def format_stats(stats):
         """Форматировать статистику в читаемый текст"""
+        from services.event_service import EventService
+        from models.event import Event
+
         if not stats:
             return "❌ Не удалось получить статистику"
 
@@ -151,7 +154,8 @@ class StatsService:
         if stats['bottle_feedings'] > 0:
             text += f"  • Количество: {stats['bottle_feedings']}\n"
             text += f"  • Общий объем: {stats['total_bottle_ml']} мл\n"
-            text += f"  • Средний объем: {stats['total_bottle_ml'] // stats['bottle_feedings']} мл\n"
+            if stats['bottle_feedings'] > 0:
+                text += f"  • Средний объем: {stats['total_bottle_ml'] // stats['bottle_feedings']} мл\n"
 
             last_bottle = stats['last_bottle_feeding']
             if last_bottle:
@@ -184,7 +188,8 @@ class StatsService:
 
             text += f"  • Количество снов: {stats['sleep_sessions']}\n"
             text += f"  • Общее время: {total_hours}ч {total_minutes}м\n"
-            text += f"  • Средняя продолжительность: {stats['total_sleep_minutes'] // stats['sleep_sessions']}м\n"
+            if stats['sleep_sessions'] > 0:
+                text += f"  • Средняя продолжительность: {stats['total_sleep_minutes'] // stats['sleep_sessions']}м\n"
 
             if stats['last_sleep_end']:
                 last_sleep_time = stats['last_sleep_end']['timestamp'].astimezone(pytz.timezone(TIMEZONE)).strftime(
@@ -216,7 +221,8 @@ class StatsService:
 
             text += f"  • Количество: {stats['breast_feeding_sessions']}\n"
             text += f"  • Общее время: {breast_hours}ч {breast_minutes}м\n"
-            text += f"  • Средняя продолжительность: {stats['total_breast_feeding_minutes'] // stats['breast_feeding_sessions']}м\n"
+            if stats['breast_feeding_sessions'] > 0:
+                text += f"  • Средняя продолжительность: {stats['total_breast_feeding_minutes'] // stats['breast_feeding_sessions']}м\n"
 
             # Анализ по грудям
             left_breast_count = sum(

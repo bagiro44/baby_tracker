@@ -2,21 +2,20 @@ import logging
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+import pytz
 
-from config import BOT_TOKEN
+from config import BOT_TOKEN, TIMEZONE
 from models.baby import Baby
 from models.event import Event
 from models.user import UserState
-from services.reminder_service import ReminderService
-from services.notification_service import NotificationService
-
+from models.reminder import Reminder  # ДОБАВЛЕНО
 
 from handlers.base import BaseHandler
 from handlers.feeding import FeedingHandler
 from handlers.sleep import SleepHandler
-from handlers.stats import StatsHandler
 from handlers.weight import WeightHandler
 from handlers.diaper import DiaperHandler
+from handlers.stats import StatsHandler
 
 # Configure logging
 logging.basicConfig(
@@ -25,29 +24,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def init_database():
     """Initialize all database tables"""
     Baby.create_table()
     Event.create_table()
     UserState.create_table()
+    Reminder.create_table()  # ДОБАВЛЕНО
     logger.info("Database tables initialized")
-
-
-async def send_group_message(context, message):
-    """Send message to group chat"""
-    from config import GROUP_CHAT_ID
-    if GROUP_CHAT_ID:
-        try:
-            await context.bot.send_message(GROUP_CHAT_ID, message)
-        except Exception as e:
-            logger.error(f"Failed to send group message: {e}")
-
 
 async def check_reminders(context):
     """Check and send reminders"""
     from services.reminder_service import ReminderService
-    await ReminderService.check_reminders(context)
+    await ReminderService.check_and_send_reminders(context)
 
 
 def setup_handlers(application):
@@ -181,12 +169,12 @@ def main():
     # Setup handlers
     setup_handlers(application)
 
-    # Setup scheduler for reminders
-    scheduler = BackgroundScheduler()
+    # Setup scheduler for reminders - ОБНОВЛЕНО
+    scheduler = BackgroundScheduler(timezone=pytz.timezone(TIMEZONE))
     scheduler.add_job(
         check_reminders,
-        trigger=IntervalTrigger(minutes=5),
-        args=[Application.builder().token(BOT_TOKEN).build()],
+        trigger=IntervalTrigger(minutes=1),  # Проверяем каждую минуту
+        args=[application],
         id='reminder_check',
         replace_existing=True
     )
