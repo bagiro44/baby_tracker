@@ -1,5 +1,5 @@
 import logging
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, JobQueue
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Defaults, MessageHandler, filters, JobQueue
 import pytz
 
 from config import BOT_TOKEN, TIMEZONE
@@ -181,8 +181,12 @@ def main():
     logger.info("Initializing database...")
     init_database()
 
+    TIMEZONE = 'Europe/Moscow'  # измените на нужную
+
+    defaults = Defaults(tzinfo=pytz.timezone(TIMEZONE))
+
     # Create application with job queue
-    application = Application.builder().token(BOT_TOKEN).build()
+    application = Application.builder().token(BOT_TOKEN).defaults(defaults).build()
 
     # Setup handlers
     setup_handlers(application)
