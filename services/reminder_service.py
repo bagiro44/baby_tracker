@@ -23,11 +23,16 @@ class ReminderService:
 
         reminder_time = feeding_time + timedelta(hours=FEEDING_INTERVAL_HOURS) - timedelta(
             minutes=REMINDER_MINUTES_BEFORE)
+        reminder_now_time = feeding_time + timedelta(hours=FEEDING_INTERVAL_HOURS)
 
         ReminderService.cancel_pending_reminders(baby_id, 'feeding')
+        ReminderService.cancel_pending_reminders(baby_id, 'feeding_now')
 
         reminder_id = Reminder.add(baby_id, 'feeding', reminder_time)
         logger.info(f"Scheduled feeding reminder for baby {baby_id} at {reminder_time}")
+
+        Reminder.add(baby_id, 'feeding_now', reminder_now_time)
+        logger.info(f"Scheduled feeding now reminder for baby {baby_id} at {reminder_now_time}")
         return reminder_id
 
     @staticmethod
@@ -58,6 +63,8 @@ class ReminderService:
 
                 if reminder['reminder_type'] == 'feeding':
                     await ReminderService.send_feeding_reminder(context, baby, reminder)
+                if reminder['reminder_type'] == 'feeding_now':
+                    await ReminderService.send_feeding_now_reminder(context, baby, reminder)
 
                 Reminder.mark_as_sent(reminder['id'])
                 logger.info(f"Sent and marked reminder {reminder['id']} as sent")
@@ -83,13 +90,13 @@ class ReminderService:
             message
         )
 
-        # from config import ADMIN_USER_IDS
-        # for user_id in ADMIN_USER_IDS:
-        #     try:
-        #         await context.bot.send_message(
-        #             chat_id=user_id,
-        #             text=message
-        #         )
-        #         logger.info(f"Sent reminder to user {user_id}")
-        #     except Exception as e:
-        #         logger.error(f"Failed to send reminder to user {user_id}: {e}")
+    @staticmethod
+    async def send_feeding_now_reminder(context, baby, reminder):
+        message = f"⏰⏰⏰ Пора кормить смесью! ⏰⏰⏰"
+
+        logger.info(f"Sending feeding now reminder for {baby['name']}")
+
+        await NotificationService.notify_group(
+            context,
+            message
+        )

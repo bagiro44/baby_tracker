@@ -18,7 +18,7 @@ class NotificationService:
         try:
             # Добавляем информацию о пользователе
             if user_name:
-                message = f"{message} 👤 {user_name}"
+                message = f"{message} \n👤 {user_name}"
 
             if timestamp:
                 time_str = timestamp.astimezone(pytz.timezone(TIMEZONE)).strftime('%H:%M')
