@@ -2,6 +2,7 @@ import logging
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Defaults, MessageHandler, filters, JobQueue
 import pytz
 import sys
+from systemd import journal
 
 from config import BOT_TOKEN, TIMEZONE
 
@@ -25,11 +26,10 @@ logging.basicConfig(
     level=logging.INFO,
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('/home/bagiro44/bot.log')
+        logging.FileHandler('/home/bagiro44/bot.log'),
+        journal.JournalHandler(SYSLOG_IDENTIFIER="logtest")
     ]
 )
-logger = logging.getLogger(__name__)
-
 
 def init_database():
     """Initialize all database tables"""
