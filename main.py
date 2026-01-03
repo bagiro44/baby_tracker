@@ -1,6 +1,7 @@
 import logging
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Defaults, MessageHandler, filters, JobQueue
 import pytz
+import sys
 
 from config import BOT_TOKEN, TIMEZONE
 
@@ -21,7 +22,11 @@ from handlers.stats import StatsHandler
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.INFO,
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('/home/bagiro44/bot.log')
+    ]
 )
 logger = logging.getLogger(__name__)
 
