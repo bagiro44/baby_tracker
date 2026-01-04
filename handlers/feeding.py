@@ -111,16 +111,13 @@ class FeedingHandler:
             return
 
         try:
-            logger.info(f"Bottle volume: {volume_str}")
             volume = int(volume_str)
             message_text = "Когда было кормление?"
             await query.edit_message_text(
                 message_text,
                 reply_markup=time_selection_keyboard("bottle_feeding")
             )
-            logger.info(f"Sent message to bot - {message_text}")
             context.user_data['bottle_volume'] = volume
-            logger.info(f"Set bottle volume in context to {volume}")
         except ValueError:
             await query.edit_message_text("❌ Ошибка выбора объема")
 

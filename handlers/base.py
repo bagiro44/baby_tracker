@@ -145,19 +145,24 @@ class BaseHandler:
         elif state == "awaiting_bottle_volume":
             try:
                 volume = int(text)
-                state_data = user_state.get('data', {})
-                baby_id = state_data.get('baby_id')
-                timestamp = state_data.get('timestamp')
-                user_name = update.effective_user.first_name
-
-                from services.event_service import EventService
-                await EventService.add_bottle_feeding(context, baby_id, user_id, user_name, volume, timestamp)
-                UserState.clear_state(user_id)
-
                 await update.message.reply_text(
-                    f"✅ Кормление {volume}мл записано! Выберите следующее действие:",
-                    reply_markup=main_menu_keyboard()
+                    "Когда было кормление?",
+                    reply_markup=time_selection_keyboard("bottle_feeding")
                 )
+                # context.user_data['bottle_volume'] = volume
+                # state_data = user_state.get('data', {})
+                # baby_id = state_data.get('baby_id')
+                # timestamp = state_data.get('timestamp')
+                # user_name = update.effective_user.first_name
+                #
+                # from services.event_service import EventService
+                # await EventService.add_bottle_feeding(context, baby_id, user_id, user_name, volume, timestamp)
+                # UserState.clear_state(user_id)
+                #
+                # await update.message.reply_text(
+                #     f"✅ Кормление {volume}мл записано! Выберите следующее действие:",
+                #     reply_markup=main_menu_keyboard()
+                # )
 
             except ValueError:
                 await update.message.reply_text("❌ Введите число (объем в мл)")
