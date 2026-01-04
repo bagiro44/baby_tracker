@@ -27,9 +27,12 @@ logging.basicConfig(
     handlers=[
         logging.StreamHandler(sys.stdout),
         logging.FileHandler('/home/bagiro44/bot.log'),
-        journal.JournalHandler(SYSLOG_IDENTIFIER="logtest")
+        journal.JournalHandler(SYSLOG_IDENTIFIER="baby-tracker")
     ]
 )
+
+logger = logging.getLogger(__name__)
+
 
 def init_database():
     """Initialize all database tables"""
