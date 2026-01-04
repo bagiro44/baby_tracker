@@ -130,6 +130,7 @@ class FeedingHandler:
         user_name = update.effective_user.first_name
         baby = Baby.get_current()
         volume = context.user_data.get('bottle_volume')
+        logger.info(f"Get bootle volume: {volume}")
 
         if not volume:
             await query.edit_message_text("❌ Ошибка: объем не выбран")

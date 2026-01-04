@@ -149,6 +149,7 @@ class BaseHandler:
                     "Когда было кормление?",
                     reply_markup=time_selection_keyboard("bottle_feeding")
                 )
+                logger.info(f"Set bootle volume: {volume}")
                 context.user_data['bottle_volume'] = volume
                 # state_data = user_state.get('data', {})
                 # baby_id = state_data.get('baby_id')
